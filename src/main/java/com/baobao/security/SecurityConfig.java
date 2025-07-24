@@ -14,31 +14,39 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByLogin(username)
                 .map(UserDetailsAdapter::new)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/public/**").permitAll()
-                        .requestMatchers("/produtos/admin/**", "/usuarios/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/auth/**", "/public/**", "/error/**").permitAll()
+                        .requestMatchers("/products/admin/**", "/users/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -47,6 +55,11 @@ public class SecurityConfig {
             throws Exception {
         return configuration.getAuthenticationManager();
     }
+
+//    @Bean
+//    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil) {
+//        return new JwtAuthenticationFilter(jwtUtil);
+//    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

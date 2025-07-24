@@ -33,7 +33,7 @@ public class AuthController {
     public String register(@RequestBody User user) {
         user.setSenha(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(user.getSenha()));
         userRepository.save(user);
-        return "User registered!";
+        return "Usuário registrado.";
     }
 
     public static class LoginRequest {
