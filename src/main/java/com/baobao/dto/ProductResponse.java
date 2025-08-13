@@ -3,6 +3,7 @@ package com.baobao.dto;
 import com.baobao.model.Product;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.UUID;
 
 public class ProductResponse {
@@ -14,6 +15,8 @@ public class ProductResponse {
     private Boolean disponivel;
     private String imageUrl; // Ex: endpoint para buscar a imagem
     private String imageType;
+    private Set<String> caracteristicas;
+    private Set<String> ingredientes;
 
     public UUID getId() {
         return id;
@@ -59,4 +62,16 @@ public class ProductResponse {
     }
     public String getImageType() { return imageType; }
     public void setImageType(String imageType) { this.imageType = imageType; }
+    public Set<String> getCaracteristicas() {
+        return caracteristicas;
+    }
+    public void setCaracteristicas(Set<String> caracteristicas) {
+        this.caracteristicas = caracteristicas;
+    }
+    public Set<String> getIngredientes() {
+        return ingredientes;
+    }
+    public void setIngredientes(Set<String> ingredientes) {
+        this.ingredientes = ingredientes;
+    }
 }

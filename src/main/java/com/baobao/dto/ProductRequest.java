@@ -1,6 +1,7 @@
 package com.baobao.dto;
 
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.UUID;
 
 public class ProductRequest {
@@ -10,6 +11,8 @@ public class ProductRequest {
     private String descricao;
     private BigDecimal preco;
     private Boolean disponivel;
+    private Set<UUID> caracteristicas;
+    private Set<UUID> ingredientes;
 
     public UUID getId() {
         return id;
@@ -46,5 +49,17 @@ public class ProductRequest {
     }
     public void setDisponivel(Boolean disponivel) {
         this.disponivel = disponivel;
+    }
+    public Set<UUID> getCaracteristicas() {
+        return caracteristicas;
+    }
+    public void setCaracteristicas(Set<UUID> caracteristicas) {
+        this.caracteristicas = caracteristicas;
+    }
+    public Set<UUID> getIngredientes() {
+        return ingredientes;
+    }
+    public void setIngredientes(Set<UUID> ingredientes) {
+        this.ingredientes = ingredientes;
     }
 }

@@ -2,8 +2,10 @@ package com.baobao.controller;
 
 import com.baobao.dto.ProductRequest;
 import com.baobao.dto.ProductResponse;
+import com.baobao.model.Ingredients;
 import com.baobao.model.Product;
-import com.baobao.repository.ProductRepository;
+import com.baobao.model.Property;
+import com.baobao.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -12,51 +14,33 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductService productService;
 
     @GetMapping
-    public List<Product> listar() {
-        return productRepository.findAll();
+    public List<ProductResponse> listar() {
+        return productService.listarProdutos();
     }
 
     @PostMapping(value="/admin/save", consumes={"multipart/form-data"})
-    public ResponseEntity<Product> novoProduto(
+    public ResponseEntity<ProductResponse> novoProduto(
             @RequestPart("data") ProductRequest request,
             @RequestPart("image") MultipartFile imageFile)
             throws IOException {
-        Product novo = new Product();
-        novo.setNome(request.getNome());
-        novo.setCategoria(request.getCategoria());
-        novo.setDescricao(request.getDescricao());
-        novo.setPreco(request.getPreco());
-        novo.setDisponivel(request.isDisponivel());
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            novo.setImagem(imageFile.getBytes());
-            String tipo = imageFile.getContentType();
-            if (tipo == null || tipo.isBlank()) tipo = "application.octet-stream";
-            novo.setImagemtipo(tipo);
-        }
-
-        Product produto = productRepository.save(novo);
-        return new ResponseEntity<>(produto, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(productService.criarProduto(request, imageFile));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> procurarProduto(@PathVariable UUID id) {
-        Optional<Product> opt = productRepository.findById(id);
-        return opt.map(value -> ResponseEntity.ok()
-                        .body(toProductResponse(value)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return ResponseEntity.ok(productService.buscarProduto(id));
     }
 
     @PutMapping(value="/admin/save/{id}", consumes={"multipart/form-data"})
@@ -65,50 +49,22 @@ public class ProductController {
             @RequestPart("data") ProductRequest request,
             @RequestPart("image") MultipartFile imageFile)
             throws IOException {
-        Optional<Product> opt = productRepository.findById(id);
-        if (opt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Product velho = opt.get();
-        velho.setNome(request.getNome());
-        velho.setCategoria(request.getCategoria());
-        velho.setDescricao(request.getDescricao());
-        velho.setPreco(request.getPreco());
-        velho.setDisponivel(request.isDisponivel());
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            velho.setImagem(imageFile.getBytes());
-            String tipo = imageFile.getContentType();
-            if (tipo == null || tipo.isBlank()) tipo = "application.octet-stream";
-            velho.setImagemtipo(tipo);
-        }
-
-        Product produto = productRepository.save(velho);
-        return ResponseEntity.ok()
-                .body(toProductResponse(produto));
+        return ResponseEntity.ok(productService.atualizarProduto(id, request, imageFile));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduto(@PathVariable UUID id) {
-        if (!productRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        productRepository.deleteById(id);
+        productService.deletarProduto(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> getImagemProduto(@PathVariable UUID id) {
-        Optional<Product> opt = productRepository.findById(id);
-        if (opt.isEmpty() || opt.get().getImagem() == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        byte[] imageData = opt.get().getImagem();
-        String tipo = opt.get().getImagemtipo();
-        if (tipo == null || tipo.isBlank()) tipo = "application/octet-stream";
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(tipo)).body(imageData);
+        byte[] imageData = productService.buscarImagemProduto(id);
+        String tipo = productService.buscarTipoImagem(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(tipo))
+                .body(imageData);
     }
 
     private ProductResponse toProductResponse(Product produto) {
@@ -121,6 +77,18 @@ public class ProductController {
         response.setDisponivel(produto.isDisponivel());
         response.setImageUrl("/products/" + produto.getId() + "/image");
         response.setImageType(produto.getImagemtipo());
+        response.setCaracteristicas(
+                produto.getCaracteristicas() == null ? Set.of() :
+                        produto.getCaracteristicas().stream()
+                                .map(Property::getNome)
+                                .collect(Collectors.toSet())
+        );
+        response.setIngredientes(
+                produto.getIngredientes() == null ? Set.of() :
+                        produto.getIngredientes().stream()
+                                .map(Ingredients::getNome)
+                                .collect(Collectors.toSet())
+        );
         return response;
     }
 }
